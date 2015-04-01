@@ -1,14 +1,11 @@
 __author__ = 'Batuhan Buyukguzel'
-__version__ = '0.3 <27.03.2015>'
+__version__ = '0.4 <01.04.2015>'
 
 '''
 You need install 'paramiko' library to run this application.
 http://www.paramiko.org/installing.html
 
 This code tested on Ubuntu 14.04 / Python 3.4.0
-
-
-TODO: Don't upload the hidden files. Check '.' at the beginning of the filename
 '''
 
 import os
@@ -61,6 +58,7 @@ conn.run_command('mkdir %s' % project_name)
 # command every loop which probably already exist on remote.
 # I add this to gain a little performance.
 local_directory_list = []
+run_makefile = [False]  # Need pass by reference. Lists are mutable.
 
 
 def walkDirectory(dir):
@@ -95,8 +93,13 @@ def walkDirectory(dir):
                 # every time same hidden file in the loop (because value won't
                 # exist in 'sum' or we never upload any hidden files
                 if not ((notFullPath.split('/')[-1]).startswith('.')):
-                    # upload the file
+                    # Upload the file
                     conn.put_file(cursor)
+
+                    # Uploading cpp file to remote means, cpp file modified
+                    # and because of that, we need to compile again
+                    if (notFullPath.endswith('.cpp')):
+                        run_makefile[0] = True
 
         else:  # create new directory and cd this directory
 
@@ -125,4 +128,10 @@ def checkMD5Sum(dir):
 
 while (True):
     walkDirectory(path)
+
+    if (run_makefile[0]):
+        conn.run_command('make')
+        print('Makefile calistirildi')
+        run_makefile[0] = False
+
     time.sleep(5)
